@@ -114,6 +114,14 @@ def root():
     return {"message": "UnipusHelper Pro API", "docs": "/docs"}
 
 
+@app.get("/admin")
+def admin():
+    admin_path = os.path.join(frontend_path, "admin.html")
+    if os.path.exists(admin_path):
+        return FileResponse(admin_path)
+    raise HTTPException(status_code=404, detail="Admin page not found")
+
+
 @app.get("/health")
 def health():
     return {"status": "ok"}

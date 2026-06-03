@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UnipusHelper · 管理看板</title>
+  <style>
+    :root {
+      --p: #4F46E5; --p-dk: #4338CA; --p-lg: #EEF2FF;
+      --g: #10B981; --r: #EF4444; --y: #F59E0B;
+      --text: #111827; --text-s: #6B7280; --text-xs: #9CA3AF;
+      --border: #E5E7EB; --bg: #F3F4F6; --card: #fff;
+      --radius: 12px;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5; }
+
+    .topbar {
+      background: var(--card); border-bottom: 1px solid var(--border);
+      padding: 14px 24px; display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 10;
+    }
+    .brand { font-weight: 800; font-size: 18px; color: var(--p); }
+    .btn {
+      padding: 8px 14px; border: 1px solid var(--border); border-radius: 8px;
+      background: transparent; color: var(--text-s); font-size: 13px; cursor: pointer;
+    }
+    .btn:hover { background: var(--bg); color: var(--text); }
+
+    .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+
+    .stats {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 24px;
+    }
+    .stat-card {
+      background: var(--card); border-radius: var(--radius); border: 1px solid var(--border);
+      padding: 20px; text-align: center;
+    }
+    .stat-num { font-size: 28px; font-weight: 800; }
+    .stat-label { font-size: 12px; color: var(--text-s); margin-top: 4px; }
+    .stat-users { color: var(--p); }
+    .stat-tasks { color: var(--g); }
+    .stat-running { color: var(--y); }
+    .stat-completed { color: #047857; }
+    .stat-failed { color: var(--r); }
+
+    .card {
+      background: var(--card); border-radius: var(--radius); border: 1px solid var(--border);
+      margin-bottom: 24px; overflow: hidden;
+    }
+    .card-header {
+      padding: 16px 20px; border-bottom: 1px solid var(--border);
+      font-weight: 700; font-size: 15px;
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th {
+      text-align: left; padding: 12px 16px; color: var(--text-s); font-weight: 600;
+      border-bottom: 2px solid var(--border); background: #FAFAFA;
+    }
+    td { padding: 12px 16px; border-bottom: 1px solid var(--border); }
+    tr:hover { background: var(--p-lg); }
+    tr { cursor: pointer; }
+
+    .badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600;
+    }
+    .bd-p { background: #FEF3C7; color: #B45309; }
+    .bd-q { background: #DBEAFE; color: #1D4ED8; }
+    .bd-run { background: #D1FAE5; color: #047857; }
+    .bd-ok { background: #D1FAE5; color: #047857; }
+    .bd-fail { background: #FEE2E2; color: #B91C1C; }
+    .bd-dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+    .bd-run .bd-dot { background: var(--g); }
+    .bd-ok .bd-dot { background: var(--g); }
+    .bd-fail .bd-dot { background: var(--r); }
+    .bd-p .bd-dot { background: var(--y); }
+
+    .empty { text-align: center; padding: 48px; color: var(--text-xs); }
+
+    .log-modal {
+      display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center;
+    }
+    .log-modal.show { display: flex; }
+    .log-content {
+      background: var(--card); border-radius: var(--radius); width: 90%; max-width: 700px;
+      max-height: 80vh; display: flex; flex-direction: column;
+    }
+    .log-header {
+      padding: 16px 20px; border-bottom: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .log-body {
+      padding: 16px 20px; overflow-y: auto; font-family: monospace; font-size: 12px;
+      line-height: 1.6; white-space: pre-wrap; word-break: break-all; color: var(--text-s);
+    }
+    .log-close { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-s); }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner {
+      width: 20px; height: 20px; border: 2px solid var(--border);
+      border-top-color: var(--p); border-radius: 50%; animation: spin 0.6s linear infinite;
+      margin: 40px auto;
+    }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="brand">UnipusHelper · 管理看板</span>
+  <button class="btn" onclick="location.href='/'">返回前台</button>
+</div>
+
+<div class="container">
+  <div id="loading"><div class="spinner"></div></div>
+  <div id="content" style="display:none">
+    <div class="stats">
+      <div class="stat-card"><div class="stat-num stat-users" id="s-users">-</div><div class="stat-label">注册用户</div></div>
+      <div class="stat-card"><div class="stat-num stat-tasks" id="s-tasks">-</div><div class="stat-label">总任务数</div></div>
+      <div class="stat-card"><div class="stat-num stat-running" id="s-running">-</div><div class="stat-label">执行中</div></div>
+      <div class="stat-card"><div class="stat-num stat-completed" id="s-completed">-</div><div class="stat-label">已完成</div></div>
+      <div class="stat-card"><div class="stat-num stat-failed" id="s-failed">-</div><div class="stat-label">失败</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">用户列表</div>
+      <table>
+        <thead><tr><th>ID</th><th>邮箱</th><th>绑定手机</th><th>注册时间</th></tr></thead>
+        <tbody id="tb-users"></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-header">任务列表（点击行查看日志）</div>
+      <table>
+        <thead><tr><th>ID</th><th>用户</th><th>手机</th><th>状态</th><th>进度</th><th>创建时间</th></tr></thead>
+        <tbody id="tb-tasks"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="log-modal" id="log-modal" onclick="closeLog(event)">
+  <div class="log-content" onclick="event.stopPropagation()">
+    <div class="log-header">
+      <span>任务日志</span>
+      <button class="log-close" onclick="document.getElementById('log-modal').classList.remove('show')">&times;</button>
+    </div>
+    <div class="log-body" id="log-body"></div>
+  </div>
+</div>
+
+<script>
+  const API = window.location.origin + '/api';
+
+  async function fetchData() {
+    const res = await fetch(API + '/admin/dashboard', { credentials: 'include' });
+    if (!res.ok) {
+      document.getElementById('loading').innerHTML = '<div class="empty">加载失败：' + res.status + '</div>';
+      return;
+    }
+    const data = await res.json();
+    render(data);
+  }
+
+  function render(data) {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('content').style.display = 'block';
+
+    document.getElementById('s-users').textContent = data.stats.total_users;
+    document.getElementById('s-tasks').textContent = data.stats.total_tasks;
+    document.getElementById('s-running').textContent = data.stats.status_counts.running;
+    document.getElementById('s-completed').textContent = data.stats.status_counts.completed;
+    document.getElementById('s-failed').textContent = data.stats.status_counts.failed;
+
+    const uBody = document.getElementById('tb-users');
+    if (data.users.length === 0) {
+      uBody.innerHTML = '<tr><td colspan="4" class="empty">暂无用户</td></tr>';
+    } else {
+      uBody.innerHTML = data.users.map(u => {
+        const dt = u.created_at ? new Date(u.created_at).toLocaleString('zh-CN', {month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit'}) : '-';
+        return `<tr><td>${u.id}</td><td>${esc(u.email)}</td><td>${u.default_phone || '<span style="color:#9CA3AF">未绑定</span>'}</td><td style="color:#6B7280;font-size:12px">${dt}</td></tr>`;
+      }).join('');
+    }
+
+    const tBody = document.getElementById('tb-tasks');
+    if (data.tasks.length === 0) {
+      tBody.innerHTML = '<tr><td colspan="6" class="empty">暂无任务</td></tr>';
+    } else {
+      tBody.innerHTML = data.tasks.map(t => {
+        const dt = t.created_at ? new Date(t.created_at).toLocaleString('zh-CN', {month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit'}) : '-';
+        return `<tr onclick="showLog(${t.id}, '${esc(t.email)}', \`${esc(t.log || '').slice(-500)}\`)">
+          <td>${t.id}</td>
+          <td>${esc(t.email)}</td>
+          <td>${t.phone}</td>
+          <td>${badge(t.status)}</td>
+          <td>${t.progress.toFixed(1)}%</td>
+          <td style="color:#6B7280;font-size:12px">${dt}</td>
+        </tr>`;
+      }).join('');
+    }
+  }
+
+  function badge(s) {
+    const m = {
+      pending: {c:'bd-p', t:'待处理'},
+      queued:  {c:'bd-q', t:'队列中'},
+      running: {c:'bd-run', t:'执行中'},
+      completed:{c:'bd-ok', t:'已完成'},
+      failed:  {c:'bd-fail', t:'失败'}
+    };
+    const x = m[s] || {c:'bd-p', t:s};
+    return `<span class="badge ${x.c}"><span class="bd-dot"></span>${x.t}</span>`;
+  }
+
+  function esc(t) {
+    const d = document.createElement('div');
+    d.textContent = t;
+    return d.innerHTML;
+  }
+
+  function showLog(id, email, log) {
+    document.getElementById('log-body').textContent = `任务 #${id} (${email})\n\n${log}`;
+    document.getElementById('log-modal').classList.add('show');
+  }
+
+  function closeLog(e) {
+    if (e.target === document.getElementById('log-modal')) {
+      document.getElementById('log-modal').classList.remove('show');
+    }
+  }
+
+  fetchData();
+  setInterval(fetchData, 10000);
+</script>
+
+</body>
+</html>

@@ -113,6 +113,49 @@ def logout(request: Request, response: Response):
 def me(current_user: User = Depends(get_current_user)):
     return current_user
 
+# ========== Admin Dashboard ==========
+@router.get("/admin/dashboard")
+def admin_dashboard(db: Session = Depends(get_db)):
+    """管理看板：返回所有用户和任务的汇总数据"""
+    users = db.query(User).order_by(User.id.desc()).all()
+    tasks = db.query(Task).order_by(Task.id.desc()).all()
+
+    status_counts = {"pending": 0, "queued": 0, "running": 0, "completed": 0, "failed": 0}
+    for t in tasks:
+        if t.status in status_counts:
+            status_counts[t.status] += 1
+
+    return {
+        "stats": {
+            "total_users": len(users),
+            "total_tasks": len(tasks),
+            "status_counts": status_counts
+        },
+        "users": [
+            {
+                "id": u.id,
+                "email": u.email,
+                "default_phone": u.default_phone,
+                "created_at": u.created_at.isoformat() if u.created_at else None
+            }
+            for u in users
+        ],
+        "tasks": [
+            {
+                "id": t.id,
+                "user_id": t.user_id,
+                "email": t.email,
+                "phone": t.phone,
+                "status": t.status,
+                "progress": t.progress,
+                "log": t.log,
+                "created_at": t.created_at.isoformat() if t.created_at else None,
+                "updated_at": t.updated_at.isoformat() if t.updated_at else None
+            }
+            for t in tasks
+        ]
+    }
+
 # ========== Tasks ==========
 @router.post("/tasks", response_model=TaskResponse)
 def create_task(
