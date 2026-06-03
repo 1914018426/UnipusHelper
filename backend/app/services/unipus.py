@@ -80,6 +80,9 @@ class UnipusClient:
             return False
 
     # ========== 2. 生成 authToken ==========
+    # U校园AI 服务端验证密钥（固定值，不可更改）
+    UNIPUS_AUTH_SECRET = "a824b379f126b8b7aa5e33dee83fb0a05aa7462c"
+
     def generate_auth_token(self) -> str:
         payload = {
             "aud": "edx.unipus.cn",
@@ -90,7 +93,7 @@ class UnipusClient:
             "exp": int(time.time()) + 365 * 24 * 3600,
             "email": ""
         }
-        self.auth_token = jwt.encode(payload, settings.UNIPUS_SECRET, algorithm="HS256")
+        self.auth_token = jwt.encode(payload, self.UNIPUS_AUTH_SECRET, algorithm="HS256")
         return self.auth_token
 
     # ========== 3. 获取用户信息 ==========
