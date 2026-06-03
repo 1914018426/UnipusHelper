@@ -113,6 +113,16 @@ def logout(request: Request, response: Response):
 def me(current_user: User = Depends(get_current_user)):
     return current_user
 
+from datetime import datetime, timedelta
+
+
+def _cst_str(dt: datetime) -> str:
+    """UTC naive datetime → CST (UTC+8) ISO string"""
+    if not dt:
+        return None
+    return (dt + timedelta(hours=8)).isoformat()
+
+
 # ========== Admin Dashboard ==========
 @router.get("/admin/dashboard")
 def admin_dashboard(db: Session = Depends(get_db)):
@@ -136,7 +146,7 @@ def admin_dashboard(db: Session = Depends(get_db)):
                 "id": u.id,
                 "email": u.email,
                 "default_phone": u.default_phone,
-                "created_at": u.created_at.isoformat() if u.created_at else None
+                "created_at": _cst_str(u.created_at)
             }
             for u in users
         ],
@@ -149,8 +159,8 @@ def admin_dashboard(db: Session = Depends(get_db)):
                 "status": t.status,
                 "progress": t.progress,
                 "log": t.log,
-                "created_at": t.created_at.isoformat() if t.created_at else None,
-                "updated_at": t.updated_at.isoformat() if t.updated_at else None
+                "created_at": _cst_str(t.created_at),
+                "updated_at": _cst_str(t.updated_at)
             }
             for t in tasks
         ]
