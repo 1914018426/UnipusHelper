@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>UnipusHelper</title>
+  <style>
+    :root {
+      --p: #4F46E5;
+      --p-dk: #4338CA;
+      --p-lg: #EEF2FF;
+      --g: #10B981;
+      --r: #EF4444;
+      --y: #F59E0B;
+      --text: #111827;
+      --text-s: #6B7280;
+      --text-xs: #9CA3AF;
+      --border: #E5E7EB;
+      --bg: #F3F4F6;
+      --card: #fff;
+      --radius: 12px;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { height: 100%; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .page { display: none; min-height: 100%; }
+    .page.active { display: flex; flex-direction: column; }
+
+    /* Auth */
+    .auth-wrap {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .auth-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      width: 100%;
+      max-width: 440px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    .auth-body { padding: 40px 36px; }
+    @media (max-width: 480px) {
+      .auth-body { padding: 28px 22px; }
+    }
+    h1 { font-size: 22px; font-weight: 700; margin-bottom: 6px; letter-spacing: -0.3px; }
+    .subtitle { font-size: 14px; color: var(--text-s); margin-bottom: 28px; }
+
+    .form-group { margin-bottom: 18px; }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: var(--text);
+    }
+    input, select {
+      width: 100%;
+      padding: 11px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      font-size: 15px;
+      font-family: inherit;
+      color: var(--text);
+      background: var(--card);
+      -webkit-appearance: none;
+      appearance: none;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--p);
+      box-shadow: 0 0 0 3px rgba(79,70,229,0.08);
+    }
+    input::placeholder { color: var(--text-xs); }
+    input:read-only {
+      background: #F9FAFB;
+      color: var(--text-s);
+      cursor: not-allowed;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all .15s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .btn:disabled { opacity: .6; cursor: not-allowed; }
+    .btn-p { background: var(--p); color: #fff; }
+    .btn-p:hover:not(:disabled) { background: var(--p-dk); }
+    .btn-p:active:not(:disabled) { transform: translateY(1px); }
+    .btn-g { background: var(--g); color: #fff; }
+    .btn-g:hover:not(:disabled) { background: #059669; }
+    .btn-r { background: var(--r); color: #fff; }
+    .btn-r:hover:not(:disabled) { background: #DC2626; }
+    .btn-s {
+      background: transparent;
+      color: var(--text-s);
+      border: 1px solid var(--border);
+      padding: 8px 14px;
+      width: auto;
+      font-size: 13px;
+      font-weight: 500;
+    }
+    .btn-s:hover:not(:disabled) { background: var(--bg); color: var(--text); }
+    .btn-xs { padding: 6px 12px; font-size: 12px; width: auto; }
+
+    .link {
+      color: var(--p);
+      text-decoration: none;
+      font-weight: 500;
+      cursor: pointer;
+      background: none;
+      border: none;
+      font-size: inherit;
+      font-family: inherit;
+    }
+    .link:hover { text-decoration: underline; }
+
+    .auth-footer {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 14px;
+      color: var(--text-s);
+    }
+
+    .msg {
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      margin-bottom: 18px;
+      display: none;
+    }
+    .msg.show { display: block; }
+    .msg.ok { background: #ECFDF5; color: #047857; border: 1px solid #A7F3D0; }
+    .msg.err { background: #FEF2F2; color: #B91C1C; border: 1px solid #FECACA; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+
+    /* Dashboard */
+    .topbar {
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .brand { font-weight: 800; font-size: 18px; color: var(--p); letter-spacing: -0.5px; }
+    .topbar-right { display: flex; align-items: center; gap: 14px; }
+    .user-badge {
+      font-size: 13px;
+      color: var(--text-s);
+      background: var(--p-lg);
+      padding: 5px 12px;
+      border-radius: 6px;
+      max-width: 200px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .dash-body {
+      flex: 1;
+      padding: 24px;
+      max-width: 1200px;
+      width: 100%;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 400px 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+    @media (max-width: 900px) {
+      .dash-body {
+        grid-template-columns: 1fr;
+        padding: 16px;
+        gap: 16px;
+      }
+      .topbar { padding: 12px 16px; }
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    .card-body { padding: 24px; }
+    .card-body.compact { padding: 20px; }
+    @media (max-width: 480px) {
+      .card-body { padding: 18px; }
+      .card-body.compact { padding: 16px; }
+    }
+
+    .section-title {
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      letter-spacing: -0.2px;
+    }
+
+    .hint { font-size: 12px; color: var(--text-xs); margin-top: 4px; }
+    .lock-hint { font-size: 12px; color: var(--g); margin-top: 4px; font-weight: 500; }
+
+    .task-item {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      transition: box-shadow .15s, border-color .15s;
+    }
+    .task-item:hover { border-color: #C7D2FE; box-shadow: 0 2px 8px rgba(79,70,229,0.06); }
+    .task-item + .task-item { margin-top: 12px; }
+    .task-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .task-phone { font-weight: 700; font-size: 15px; }
+    .task-meta {
+      font-size: 12px;
+      color: var(--text-s);
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-bottom: 6px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .bd-p { background: #FEF3C7; color: #B45309; }
+    .bd-q { background: #DBEAFE; color: #1D4ED8; }
+    .bd-run { background: #D1FAE5; color: #047857; }
+    .bd-ok { background: #D1FAE5; color: #047857; }
+    .bd-fail { background: #FEE2E2; color: #B91C1C; }
+    .bd-dot { width: 6px; height: 6px; border-radius: 50%; }
+    .bd-run .bd-dot { background: var(--g); animation: pulse 1.4s infinite; }
+    .bd-p .bd-dot { background: var(--y); }
+    .bd-q .bd-dot { background: #3B82F6; }
+    .bd-ok .bd-dot { background: var(--g); }
+    .bd-fail .bd-dot { background: var(--r); }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+    .progress-wrap { margin-top: 10px; }
+    .progress-track {
+      height: 5px;
+      background: var(--border);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: var(--p);
+      border-radius: 3px;
+      transition: width 0.4s ease;
+    }
+    .progress-txt {
+      font-size: 11px;
+      color: var(--text-xs);
+      margin-top: 5px;
+    }
+
+    .log-box {
+      background: #F3F4F6;
+      border-radius: 6px;
+      padding: 10px 12px;
+      font-size: 12px;
+      color: var(--text-s);
+      max-height: 100px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+      margin-top: 8px;
+      line-height: 1.5;
+    }
+
+    .empty {
+      text-align: center;
+      padding: 48px 20px;
+      color: var(--text-xs);
+      font-size: 14px;
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .count { font-size: 12px; color: var(--text-xs); }
+  </style>
+</head>
+<body>
+
+<!-- Auth Page -->
+<div id="page-auth" class="page active">
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <div class="auth-body">
+        <div id="auth-msg" class="msg"></div>
+
+        <div id="login-form">
+          <h1>登录</h1>
+          <p class="subtitle">进入 UnipusHelper</p>
+          <div class="form-group">
+            <label>邮箱</label>
+            <input type="email" id="login-email" placeholder="your@email.com" autocomplete="email">
+          </div>
+          <div class="form-group">
+            <label>密码</label>
+            <input type="password" id="login-pwd" placeholder="密码" autocomplete="current-password">
+          </div>
+          <button class="btn btn-p" id="login-btn" onclick="doLogin()">登录</button>
+          <div class="auth-footer">
+            还没有账号？<button class="link" onclick="toggleAuth('register')">注册</button>
+          </div>
+        </div>
+
+        <div id="register-form" style="display:none">
+          <h1>注册</h1>
+          <p class="subtitle">创建新账号</p>
+          <div class="form-group">
+            <label>邮箱</label>
+            <input type="email" id="reg-email" placeholder="your@email.com" autocomplete="email">
+          </div>
+          <div class="form-group">
+            <label>密码</label>
+            <input type="password" id="reg-pwd" placeholder="至少6位" autocomplete="new-password">
+          </div>
+          <button class="btn btn-p" id="reg-btn" onclick="doRegister()">注册</button>
+          <div class="auth-footer">
+            已有账号？<button class="link" onclick="toggleAuth('login')">登录</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Dashboard Page -->
+<div id="page-dash" class="page">
+  <div class="topbar">
+    <span class="brand">UnipusHelper</span>
+    <div class="topbar-right">
+      <span class="user-badge" id="user-email"></span>
+      <button class="btn btn-s" onclick="doLogout()">退出</button>
+    </div>
+  </div>
+
+  <div class="dash-body">
+    <!-- Create Task -->
+    <div class="card">
+      <div class="card-body compact">
+        <div class="section-title">新建任务</div>
+        <div id="task-msg" class="msg"></div>
+        <form id="taskForm" onsubmit="return doTask(event)">
+          <div class="form-group">
+            <label>手机号（U校园账号）</label>
+            <input type="text" id="o-phone" placeholder="绑定的手机号" required>
+            <p class="hint" id="phone-hint"></p>
+          </div>
+          <div class="form-group">
+            <label>密码</label>
+            <input type="password" id="o-pwd" placeholder="U校园密码" required>
+          </div>
+          <button type="submit" class="btn btn-p" id="task-btn">提交任务</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Tasks List -->
+    <div class="card">
+      <div class="card-body compact">
+        <div class="toolbar">
+          <div class="section-title" style="margin:0">我的任务</div>
+          <div class="count" id="task-count">加载中...</div>
+        </div>
+        <div id="tasks-list">
+          <div class="empty">暂无任务</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const API = window.location.origin + '/api';
+  let currentUser = null;
+
+  function showMsg(id, text, ok) {
+    const el = document.getElementById(id);
+    el.textContent = text;
+    el.className = 'msg show ' + (ok ? 'ok' : 'err');
+  }
+  function hideMsg(id) {
+    document.getElementById(id).className = 'msg';
+  }
+
+  function toggleAuth(mode) {
+    document.getElementById('login-form').style.display = mode === 'login' ? 'block' : 'none';
+    document.getElementById('register-form').style.display = mode === 'register' ? 'block' : 'none';
+    hideMsg('auth-msg');
+  }
+
+  async function api(method, path, body) {
+    const opts = {
+      method,
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' }
+    };
+    if (body) opts.body = JSON.stringify(body);
+    const res = await fetch(API + path, opts);
+    const data = await res.json().catch(() => ({}));
+    return { ok: res.ok, status: res.status, data };
+  }
+
+  async function checkAuth() {
+    const { ok, data } = await api('GET', '/auth/me');
+    if (ok && data.id) {
+      currentUser = data;
+      showDash(data);
+      return true;
+    }
+    showAuth();
+    return false;
+  }
+
+  function showAuth() {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('page-auth').classList.add('active');
+  }
+
+  function showDash(user) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('page-dash').classList.add('active');
+    document.getElementById('user-email').textContent = user.email;
+
+    const phoneInput = document.getElementById('o-phone');
+    const phoneHint = document.getElementById('phone-hint');
+    if (user.default_phone) {
+      phoneInput.value = user.default_phone;
+      phoneInput.readOnly = true;
+      phoneHint.textContent = '账号已锁定，不可更换';
+      phoneHint.className = 'lock-hint';
+    } else {
+      phoneInput.value = '';
+      phoneInput.readOnly = false;
+      phoneHint.textContent = '';
+      phoneHint.className = 'hint';
+    }
+
+    loadTasks();
+  }
+
+  async function doLogin() {
+    const btn = document.getElementById('login-btn');
+    const email = document.getElementById('login-email').value.trim();
+    const pwd = document.getElementById('login-pwd').value;
+    if (!email || !pwd) { showMsg('auth-msg', '请填写邮箱和密码', false); return; }
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>';
+    hideMsg('auth-msg');
+
+    const { ok, data } = await api('POST', '/auth/login', { email, password: pwd });
+    btn.disabled = false;
+    btn.textContent = '登录';
+
+    if (ok) {
+      currentUser = data.user;
+      showDash(data.user);
+    } else {
+      showMsg('auth-msg', data.detail || '登录失败', false);
+    }
+  }
+
+  async function doRegister() {
+    const btn = document.getElementById('reg-btn');
+    const email = document.getElementById('reg-email').value.trim();
+    const pwd = document.getElementById('reg-pwd').value;
+    if (!email || !pwd) { showMsg('auth-msg', '请填写邮箱和密码', false); return; }
+    if (pwd.length < 6) { showMsg('auth-msg', '密码至少6位', false); return; }
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>';
+    hideMsg('auth-msg');
+
+    const { ok, data } = await api('POST', '/auth/register', { email, password: pwd });
+    btn.disabled = false;
+    btn.textContent = '注册';
+
+    if (ok) {
+      showMsg('auth-msg', '注册成功，请登录', true);
+      toggleAuth('login');
+      document.getElementById('login-email').value = email;
+    } else {
+      showMsg('auth-msg', data.detail || '注册失败', false);
+    }
+  }
+
+  async function doLogout() {
+    await api('POST', '/auth/logout');
+    currentUser = null;
+    showAuth();
+    document.getElementById('login-email').value = '';
+    document.getElementById('login-pwd').value = '';
+  }
+
+  async function doTask(e) {
+    e.preventDefault();
+    const btn = document.getElementById('task-btn');
+    const payload = {
+      phone: document.getElementById('o-phone').value.trim(),
+      password: document.getElementById('o-pwd').value
+    };
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> 提交中...';
+    hideMsg('task-msg');
+
+    const { ok, data } = await api('POST', '/tasks', payload);
+    btn.disabled = false;
+    btn.textContent = '提交任务';
+
+    if (ok) {
+      showMsg('task-msg', '任务 #' + data.id + ' 已创建', true);
+      document.getElementById('taskForm').reset();
+      // Restore locked phone if needed
+      if (currentUser && currentUser.default_phone) {
+        document.getElementById('o-phone').value = currentUser.default_phone;
+      }
+      loadTasks();
+    } else {
+      showMsg('task-msg', data.detail || '提交失败', false);
+    }
+  }
+
+  function statusBadge(s) {
+    const m = {
+      pending: { t: '待处理', c: 'bd-p' },
+      queued:  { t: '队列中', c: 'bd-q' },
+      running: { t: '执行中', c: 'bd-run' },
+      completed:{ t: '已完成', c: 'bd-ok' },
+      failed:  { t: '失败', c: 'bd-fail' }
+    };
+    const x = m[s] || { t: s, c: 'bd-p' };
+    return `<span class="badge ${x.c}"><span class="bd-dot"></span>${x.t}</span>`;
+  }
+
+  async function loadTasks() {
+    const list = document.getElementById('tasks-list');
+    const count = document.getElementById('task-count');
+    const { ok, data } = await api('GET', '/tasks');
+
+    if (!ok) {
+      count.textContent = '';
+      list.innerHTML = '<div class="empty">加载失败</div>';
+      return;
+    }
+
+    count.textContent = `共 ${data.length} 个`;
+    if (!data.length) {
+      list.innerHTML = '<div class="empty">暂无任务</div>';
+      return;
+    }
+
+    list.innerHTML = data.map(o => {
+      const dt = o.created_at
+        ? new Date(o.created_at).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+        : '-';
+      const prog = o.progress || 0;
+      const canCancel = ['running', 'queued'].includes(o.status);
+      const logLines = (o.log || '').split('\n').slice(-3).join('\n');
+
+      return `
+        <div class="task-item" data-id="${o.id}">
+          <div class="task-top">
+            <span class="task-phone">${o.phone}</span>
+            <div style="display:flex;gap:6px;align-items:center;">
+              ${statusBadge(o.status)}
+              ${canCancel ? `<button class="btn btn-r btn-xs" onclick="cancelTask(${o.id})">中止</button>` : ''}
+            </div>
+          </div>
+          <div class="task-meta">
+            <span>${dt}</span>
+          </div>
+          <div class="progress-wrap">
+            <div class="progress-track"><div class="progress-fill" style="width:${prog}%"></div></div>
+            <div class="progress-txt">进度 ${prog.toFixed(1)}%</div>
+          </div>
+          ${o.log ? `<div class="log-box">${escapeHtml(logLines)}</div>` : ''}
+        </div>
+      `;
+    }).join('');
+  }
+
+  async function cancelTask(id) {
+    if (!confirm('确定要中止该任务吗？')) return;
+    const { ok, data } = await api('POST', `/tasks/${id}/cancel`);
+    if (ok) {
+      loadTasks();
+    } else {
+      alert(data.detail || '中止失败');
+    }
+  }
+
+  function escapeHtml(t) {
+    const d = document.createElement('div');
+    d.textContent = t;
+    return d.innerHTML;
+  }
+
+  document.getElementById('login-pwd').addEventListener('keypress', e => { if (e.key === 'Enter') doLogin(); });
+  document.getElementById('reg-pwd').addEventListener('keypress', e => { if (e.key === 'Enter') doRegister(); });
+
+  checkAuth();
+  setInterval(() => {
+    if (document.getElementById('page-dash').classList.contains('active')) {
+      loadTasks();
+    }
+  }, 8000);
+</script>
+
+</body>
+</html>
